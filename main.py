@@ -1,17 +1,20 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import sqlite3
-import subprocess
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
+from dotenv import load_dotenv
+from openai import OpenAI
 import time
-
+import sqlite3
+import os
 import sqlite3
 
+
+# Part 1: Scraper Configs
 def trigger_scraper():
 
     # Google chrome options for heroku
@@ -108,16 +111,30 @@ def trigger_scraper():
         connection.close()
         return "Scraper Finished Running, check DB"
 
-app = FastAPI()
 
-# origins = [
-#     "http://localhost",
-#     "http://localhost:8080",
-#     "http://localhost:8000",
-#     "http://localhost:3000",
-#     "http://127.0.0.1:5500/*"
-#     "http://localhost:5500/*"
-# ]
+# Part 2: OpenAI Configs
+load_dotenv(override=True)
+openai_api_key = os.getenv('OPENAI_API_KEY')
+
+if openai_api_key:
+    print(f"OpenAI API Key exists and begins {openai_api_key[:8]}")
+else:
+    print("OpenAI API Key not set")
+    
+MODEL = "gpt-4o-mini"
+model = OpenAI()
+system_message = "You are a helpful store locator for Subway. Your duty is to look for subway stores near the user."
+
+def chat_openai(message):
+    
+    messages = [{"role": "system", "content": system_message}] + [{"role": "user", "content": message}]
+    response = model.chat.completions.create(model=MODEL, messages=messages)
+    return response.choices[0].message.content
+
+
+# Part 3: The actual FastAPI
+
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -152,6 +169,13 @@ async def scrape():
     try:
         output = trigger_scraper()
         return "Scraper finished running"
+    except Exception as e:
+        return {"error": e.message}
+
+@app.get("/chat")
+async def chat(message: str):
+    try:
+        return chat_openai(message)
     except Exception as e:
         return {"error": e.message}
 
