@@ -44,8 +44,12 @@ async def get_locations():
 
 @app.get("/trigger_scraper")
 async def scrape():
-    subprocess.run(["python3", "scraper.py"], capture_output=False, text=True)
-    return "Scraping complete"
+    try:    
+        subprocess.run(["python3", "scraper.py"], capture_output=False, text=True)
+    except Exception as e:
+        return {"error": e.message}
+    finally:
+        return "Scraping complete"
 
 
 if __name__ == "__main__":
