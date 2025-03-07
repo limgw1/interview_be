@@ -178,3 +178,6 @@ myenv
 
 #I developed it on mac so i need this
 .DS_Store
+
+#Chromadb
+chroma/

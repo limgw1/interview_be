@@ -13,10 +13,21 @@ import sqlite3
 import os
 import sqlite3
 
+import chromadb
+from chromadb.utils import embedding_functions
+import json
+
+# Part 0: API Key Configs
+load_dotenv(override=True)
+openai_api_key = os.getenv('OPENAI_API_KEY')
+
+if openai_api_key:
+    print(f"OpenAI API Key exists and begins {openai_api_key[:8]}")
+else:
+    print("OpenAI API Key not set")
 
 # Part 1: Scraper Configs
 def trigger_scraper():
-
     # Google chrome options for heroku
     from selenium import webdriver
     chrome_options = webdriver.ChromeOptions()
@@ -111,16 +122,30 @@ def trigger_scraper():
         connection.close()
         return "Scraper Finished Running, check DB"
 
+def save_to_chroma_db():
+        # Initialize ChromaDB client
+    chroma_client = chromadb.PersistentClient() 
+    embeddings = embedding_functions.OpenAIEmbeddingFunction(api_key=openai_api_key)
+    collection = chroma_client.get_or_create_collection(name="subway_locations", embedding_function=embeddings)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM scraped_data")
+    locations = cursor.fetchall()
+    for location in locations:
+        metadata = {
+            "name": location["name"],
+            "address": location["address"],
+            "opening_hours": location["openingHours"],
+            "latitude": f"{location['scrapedLat']}",
+            "longitude": f"{location['scrapedLong']}"
+        }
+        collection.upsert(
+            ids=[str(location["id"])],  # Unique ID
+            documents=[f"{location['name']} at {location['address']} is open {location['openingHours']}."],
+            metadatas=[metadata],
+        )
 
 # Part 2: OpenAI Configs
-load_dotenv(override=True)
-openai_api_key = os.getenv('OPENAI_API_KEY')
-
-if openai_api_key:
-    print(f"OpenAI API Key exists and begins {openai_api_key[:8]}")
-else:
-    print("OpenAI API Key not set")
-    
 MODEL = "gpt-4o-mini"
 model = OpenAI()
 system_message = "You are a helpful store locator for Subway. Your duty is to look for subway stores near the user."
@@ -131,6 +156,11 @@ def chat_openai(message):
     response = model.chat.completions.create(model=MODEL, messages=messages)
     return response.choices[0].message.content
 
+# Function to connect to the database
+def get_db_connection():
+    conn = sqlite3.connect("scraped_data.db")
+    conn.row_factory = sqlite3.Row  # Return results as dictionaries
+    return conn
 
 # Part 3: The actual FastAPI
 
@@ -143,12 +173,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
-
-# Function to connect to the database
-def get_db_connection():
-    conn = sqlite3.connect("scraped_data.db")
-    conn.row_factory = sqlite3.Row  # Return results as dictionaries
-    return conn
 
 @app.get("/")
 async def test():
@@ -164,20 +188,23 @@ async def get_locations():
 
     return [dict(loc) for loc in locations]
 
-@app.get("/trigger_scraper")
+@app.on_event("startup")
 async def scrape():
     try:
-        output = trigger_scraper()
-        return "Scraper finished running"
+        trigger_scraper()
+        print("Scraper finished")
+        save_to_chroma_db()
+        print("Saved to chromaDB")
+        # return "Scraper finished running, data successfully saved to chromaDB"
     except Exception as e:
-        return {"error": e.message}
+        return {"error": e}
 
 @app.get("/chat")
 async def chat(message: str):
     try:
         return chat_openai(message)
     except Exception as e:
-        return {"error": e.message}
+        return {"error": e}
 
 
 if __name__ == "__main__":
