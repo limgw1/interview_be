@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from webdriver_manager.chrome import ChromeDriverManager
 import sqlite3
 import subprocess
 from selenium import webdriver
@@ -13,9 +14,14 @@ import time
 import sqlite3
 
 def trigger_scraper():
-    #Set up Chrome WebDriver
-    service = Service("chromedriver") 
-    driver = webdriver.Chrome(service=service)
+
+    # Google chrome options for heroku
+    gChromeOptions = webdriver.ChromeOptions()
+    gChromeOptions.add_argument("window-size=1920x1480")
+    gChromeOptions.add_argument("disable-dev-shm-usage")
+    driver = webdriver.Chrome(
+        chrome_options=gChromeOptions, executable_path=ChromeDriverManager().install()
+    )
 
     #Set up sqlite
     connection = sqlite3.connect("scraped_data.db")
