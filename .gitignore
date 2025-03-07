@@ -169,3 +169,12 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+#Don't push the scraped data up, create them post production by calling the API
+*.db
+
+#Virtual Environment Stuff
+myenv
+
+#I developed it on mac so i need this
+.DS_Store
