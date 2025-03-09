@@ -478,30 +478,33 @@ input: {message} [options of intent: {intents}]
 
 #Functions to help with FE rendering
 def calculate_intersections():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM scraped_data")
-    rows = cursor.fetchall()
-    conn.close()
-    locations = [dict(row) for row in rows]
-    for loc in locations:
-        loc["numIntersections"] = 0
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM scraped_data")
+        rows = cursor.fetchall()
+        conn.close()
+        locations = [dict(row) for row in rows]
+        for loc in locations:
+            loc["numIntersections"] = 0
+            
+            for other in locations:
+                if loc["id"] != other["id"]:
+                    distance = haversine(loc["scrapedLat"], loc["scrapedLong"], other["scrapedLat"], other["scrapedLong"])
+                    if distance <= 5:  # If within 5km
+                        loc["numIntersections"] += 1
         
-        for other in locations:
-            if loc["id"] != other["id"]:
-                distance = haversine(loc["scrapedLat"], loc["scrapedLong"], other["scrapedLat"], other["scrapedLong"])
-                if distance <= 5:  # If within 5km
-                    loc["numIntersections"] += 1
-    
-    conn = sqlite3.connect("scraped_data.db")
-    cursor = conn.cursor()
-    
-    # breakpoint()
-    for loc in locations:
-        cursor.execute("UPDATE scraped_data SET numIntersections = ? WHERE id = ?", (loc["numIntersections"], loc["id"]))
-    
-    conn.commit()
-    conn.close()
+        conn = sqlite3.connect("scraped_data.db")
+        cursor = conn.cursor()
+        
+        # breakpoint()
+        for loc in locations:
+            cursor.execute("UPDATE scraped_data SET numIntersections = ? WHERE id = ?", (loc["numIntersections"], loc["id"]))
+        
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(e)
 
 # Function to connect to the database
 def get_db_connection():
