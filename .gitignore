@@ -181,3 +181,6 @@ myenv
 
 #Chromadb
 chroma/
+
+#on prem llms
+models/
