@@ -273,7 +273,7 @@ def intent_classifier(system_prompt, intents, user_input):
 def get_keyword(user_input):
     llm = models.OpenAI(MODEL)
     with system():
-        lm = llm + "You are a helpful store locator for Subway in Malaysia. Your duty is to identify what location the user is referring to in their question. Answer in a single location term. For example: ['Bangsar', 'Shah Alam', 'Kuala Lumpur', 'Penang', 'Mid Valley']"
+        lm = llm + "You are a helpful named entity recognition tool. The user will ask about the nearest branches of a fast food chain to a certain location. Your duty is to identify what location the user is referring to in their question. Your answer must be a single place."
 
     with user():
         lm += user_input
