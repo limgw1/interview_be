@@ -496,7 +496,7 @@ def calculate_intersections():
     conn = sqlite3.connect("scraped_data.db")
     cursor = conn.cursor()
     
-    breakpoint()
+    # breakpoint()
     for loc in locations:
         cursor.execute("UPDATE scraped_data SET numIntersections = ? WHERE id = ?", (loc["numIntersections"], loc["id"]))
     
