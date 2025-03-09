@@ -285,7 +285,7 @@ def get_keyword(user_input):
 
 # Functions to call by LLM (Get Distance)
 def get_estimated_user_latlong(keyword):
-  url = f"https://api.geoapify.com/v1/geocode/search?text={keyword}&bias=countrycode:my&format=json&apiKey=61a4681b133449c7aeffad366860c706"
+  url = f"https://api.geoapify.com/v1/geocode/search?text={keyword}%20Malaysia&bias=countrycode:my&format=json&apiKey=61a4681b133449c7aeffad366860c706"
 
   headers = CaseInsensitiveDict()
   headers["Accept"] = "application/json"
@@ -305,14 +305,16 @@ def get_5_closest_locations(lat, lon):
     distances = [{
         "name": loc["name"], 
         "address": loc["address"],
-        "openingHours": loc["openingHours"],
+        # "openingHours": loc["openingHours"],
         "distance": haversine(lat, lon, loc["scrapedLat"], loc["scrapedLong"])
         } for loc in locations]
     
-    top_5_sorted_locations = sorted(distances, key=lambda x: x["distance"])[10:]
+    top_5_sorted_locations = sorted(distances, key=lambda x: x["distance"])[:5]
+    # breakpoint()
+    # print(top_5_sorted_locations)
 
     #Talk to OpenAI now
-    system_message = f"You are a helpful store locator for Subway. Your duty is to assist the user in any of their inquiries about Subway outlets. The user just asked about the nearest subway locations. The locations have been identified to be {top_5_sorted_locations}"
+    system_message = f"You are a helpful store locator for Subway. Your duty is to assist the user in any of their inquiries about Subway outlets. The user just asked about the nearest subway locations. The locations have been identified to be {top_5_sorted_locations}. Your job is to list out these 5 locations"
     return system_message
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -543,8 +545,9 @@ input: {message} [options of intent: {intents}]
         if intent == "nearest outlet":
             keyword = get_keyword(message)
             print("Getting estimated user latlong based on the location: ", keyword)
-            lat, long = get_estimated_user_latlong(keyword="Bangsar")
+            long, lat = get_estimated_user_latlong(keyword)
             print(f"Coordinates for {keyword} located. Searching for top 5 locations")
+            # print(lat, long)
             system_message = get_5_closest_locations(lat, long)
             print("Top 5 locations found, generating response")
             response = chat_openai(system_message=system_message, message=message)
