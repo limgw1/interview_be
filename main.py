@@ -250,6 +250,7 @@ def chat_openai(message, system_message=default_system_message):
 
 def intent_classifier(system_prompt, intents, user_input):
     # For now I can use static intents, should be dynamic
+    # breakpoint()
     gpt4o = models.OpenAI(MODEL, echo=False)
 
     with system():
@@ -507,10 +508,10 @@ async def get_locations():
 @app.on_event("startup")
 async def scrape():
     try:
-        trigger_scraper()
-        print("Scraper finished")
-        save_to_chroma_db()
-        print("Saved to chromaDB")
+        # trigger_scraper()
+        # print("Scraper finished")
+        # save_to_chroma_db()
+        # print("Saved to chromaDB")
         return "Scraper finished running, data successfully saved to chromaDB"
     except Exception as e:
         return {"error": e}
@@ -524,9 +525,15 @@ You are a helpful assistant whose only mission is to identify the correct intent
 Please think carefully what the correct intent is based on this few examples. REMEMBER TO ONLY FOLLOW THESE EXAMPLES. DO NOT DEVIATE FROM THIS FORMAT AT ALL.
 input: Which are the outlets that closes the latest? [options of intent: {intents}]
 correct intent: opening and closing hours
+input: Which Subways close the earliest? [options of intent: {intents}]
+correct intent: opening and closing hours
+input: I crave a Subway. What is the nearest outlet to KLCC?: {intents}]
+correct intent: nearest outlet
 input: How many outlets are located in Bangsar? [options of intent: {intents}]
 correct intent: nearest outlet
-input: Hi! How are you?
+input: Hi! How are you? [options of intent: {intents}]
+correct intent: casual conversation
+input: What's the weather like? [options of intent: {intents}]
 correct intent: casual conversation
 input: {message} [options of intent: {intents}]
 
@@ -543,13 +550,16 @@ input: {message} [options of intent: {intents}]
             response = chat_openai(system_message=system_message, message=message)
             return response
         elif intent == "opening closing hours":
+            print("User is asking for opening or closing hours")
             system_message, message = get_opening_closing_hours(message)
             response = chat_openai(system_message=system_message, message=message)
             return response
         elif intent == "casual conversation":
+            print("User is having a casual conversation")
             response = chat_openai(system_message=default_system_message, message=message)
             return response
         else:
+            print("Undetected intent")
             response = chat_openai(system_message=default_system_message, message=message)
             return response
     except Exception as e:
