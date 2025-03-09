@@ -203,7 +203,7 @@ def trigger_scraper():
                     INSERT INTO scraped_data (name, address, openingHours, scrapedLat, scrapedLong, rawExtractionData) 
                     VALUES (?, ?, ?, ?, ?, ?)
                     ON CONFLICT(scrapedLat, scrapedLong) DO NOTHING 
-                """, (name, address, json.dumps(parsed_operating_hours), scraped_lat, scraped_long, json.dumps("/n".join(operating_hours))))
+                """, (name, address, json.dumps(parsed_operating_hours), scraped_lat, scraped_long, json.dumps(operating_hours)))
                 connection.commit() 
             else:
                 break
