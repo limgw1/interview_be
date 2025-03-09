@@ -490,7 +490,7 @@ def calculate_intersections():
         for other in locations:
             if loc["id"] != other["id"]:
                 distance = haversine(loc["scrapedLat"], loc["scrapedLong"], other["scrapedLat"], other["scrapedLong"])
-                if distance <= 10:  # If within 5km
+                if distance <= 5:  # If within 5km
                     loc["numIntersections"] += 1
     
     conn = sqlite3.connect("scraped_data.db")
