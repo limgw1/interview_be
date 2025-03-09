@@ -508,8 +508,8 @@ async def get_locations():
 @app.on_event("startup")
 async def scrape():
     try:
-        # trigger_scraper()
-        # print("Scraper finished")
+        trigger_scraper()
+        print("Scraper finished")
         # save_to_chroma_db()
         # print("Saved to chromaDB")
         return "Scraper finished running, data successfully saved to chromaDB"
