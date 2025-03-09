@@ -143,6 +143,7 @@ def trigger_scraper():
             scrapedLat REAL,
             scrapedLong REAL,
             rawExtractionData TEXT,
+            numIntersections INTEGER DEFAULT 0,
             UNIQUE(scrapedLat, scrapedLong)
             )
     """)
@@ -475,6 +476,33 @@ input: {message} [options of intent: {intents}]
     system_message = f"You are a helpful assistant that will tell the user which Subway branch has the {intent} hours today. The store(s) with the {intent} time is {final_locations}. Be sure to reply in a humanlike manner"
     return system_message, message
 
+#Functions to help with FE rendering
+def calculate_intersections():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM scraped_data")
+    rows = cursor.fetchall()
+    conn.close()
+    locations = [dict(row) for row in rows]
+    for loc in locations:
+        loc["numIntersections"] = 0
+        
+        for other in locations:
+            if loc["id"] != other["id"]:
+                distance = haversine(loc["scrapedLat"], loc["scrapedLong"], other["scrapedLat"], other["scrapedLong"])
+                if distance <= 10:  # If within 5km
+                    loc["numIntersections"] += 1
+    
+    conn = sqlite3.connect("scraped_data.db")
+    cursor = conn.cursor()
+    
+    breakpoint()
+    for loc in locations:
+        cursor.execute("UPDATE scraped_data SET numIntersections = ? WHERE id = ?", (loc["numIntersections"], loc["id"]))
+    
+    conn.commit()
+    conn.close()
+
 # Function to connect to the database
 def get_db_connection():
     conn = sqlite3.connect("scraped_data.db")
@@ -512,8 +540,8 @@ async def scrape():
     try:
         trigger_scraper()
         print("Scraper finished")
-        # save_to_chroma_db()
-        # print("Saved to chromaDB")
+        calculate_intersections()
+        print("Intersections finished calculating")
         return "Scraper finished running, data successfully saved to chromaDB"
     except Exception as e:
         return {"error": e}
